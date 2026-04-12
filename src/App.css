@@ -1,0 +1,40 @@
+.app {
+  background: #0f0f0f;
+  color: white;
+  font-family: system-ui;
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.top {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.middle {
+  width: 100%;
+}
+
+.bottom {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.start-button {
+  background: #6C63FF;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+.start-button:hover {
+  background: #5a52e0;
+}

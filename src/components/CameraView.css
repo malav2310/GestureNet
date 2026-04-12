@@ -1,0 +1,9 @@
+.camera-view {
+  position: relative;
+  width: 640px;
+  height: 480px;
+}
+
+.camera-canvas {
+  transform: scaleX(-1);
+}
