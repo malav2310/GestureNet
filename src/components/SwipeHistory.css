@@ -1,0 +1,47 @@
+.swipe-history {
+  width: 400px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.swipe-history h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  border: 1px solid #ddd;
+  padding: 10px;
+  background-color: white;
+  border-radius: 4px;
+}
+
+.header {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.details {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.details div {
+  margin-bottom: 2px;
+}
+
+.no-swipes {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}

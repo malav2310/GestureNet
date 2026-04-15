@@ -1,94 +1,155 @@
 import { useRef, useCallback } from 'react';
 
-export function useSwipeDetector({ lag = 5, threshold = 2.5, influence = 0.3, minDrift = 0.15, cooldownFrames = 20 }) {
+export function useSwipeDetector({ lag = 20, minDrift = 0.25, cooldownFrames = 20 }) {
   const signalBuffer = useRef([]);
-  const filteredBuffer = useRef([]);
-  const avgFilter = useRef(0);
-  const stdFilter = useRef(0);
-  const currentRun = useRef({ type: 0, frames: [] });
+  const currentSequence = useRef({ type: 0, startValue: null, startFrame: null, lastValue: null, lastFrame: null });
   const lastEvent = useRef(null);
   const frameCount = useRef(0);
   const lastSwipeFrame = useRef(0);
+  const lastSample = useRef({ value: null, frame: null });
 
   const reset = useCallback(() => {
     signalBuffer.current = [];
-    filteredBuffer.current = [];
-    avgFilter.current = 0;
-    stdFilter.current = 0;
-    currentRun.current = { type: 0, frames: [] };
+    currentSequence.current = { type: 0, startValue: null, startFrame: null, lastValue: null, lastFrame: null };
     lastEvent.current = null;
     frameCount.current = 0;
     lastSwipeFrame.current = 0;
+    lastSample.current = { value: null, frame: null };
   }, []);
 
   const processFrame = useCallback((maxX) => {
-    frameCount.current++;
+    frameCount.current += 1;
     signalBuffer.current.push(maxX);
     const bufferFull = signalBuffer.current.length >= lag;
-    
+
     if (!bufferFull) {
-      return { signal: 0, zScore: 0, avgFilter: 0, stdFilter: 0, swipe: null, isCalibrating: true, bufferFull: false, isBelowThreshold: false };
+      return {
+        signal: 0,
+        swipe: null,
+        isCalibrating: true,
+        bufferFull: false,
+        swipeWindow: null,
+        buffer: [...signalBuffer.current],
+        drift: null,
+        prevValue: null,
+        currentValue: null
+      };
     }
+
     if (signalBuffer.current.length > lag) {
       signalBuffer.current.shift();
     }
 
-    let z = 0;
-    if (stdFilter.current > 1e-8) {
-      z = (maxX - avgFilter.current) / stdFilter.current;
-    }
-    const isBelowThreshold = Math.abs(z) > 0.5 && Math.abs(z) <= threshold; // signal present but below threshold
-    const signal = Math.abs(z) > threshold ? (z > 0 ? 1 : -1) : 0;
-
-    const filtered = signal !== 0 ? influence * maxX + (1 - influence) * avgFilter.current : maxX;
-    filteredBuffer.current.push(filtered);
-    if (filteredBuffer.current.length > lag) {
-      filteredBuffer.current.shift();
-    }
-
-    avgFilter.current = filteredBuffer.current.reduce((a, b) => a + b, 0) / filteredBuffer.current.length;
-    const variance = filteredBuffer.current.reduce((a, b) => a + Math.pow(b - avgFilter.current, 2), 0) / filteredBuffer.current.length;
-    stdFilter.current = Math.sqrt(variance);
-
     let swipe = null;
+    let swipeWindow = null;
+    let drift = null;
+    let prevValue = null;
+    let currentValue = null;
 
-    if (signal === currentRun.current.type && signal !== 0) {
-      currentRun.current.frames.push({ frame: frameCount.current, value: maxX });
-    } else if ((signal === 0 || signal === -currentRun.current.type) && currentRun.current.frames.length > 0) {
-      // collapse run
-      const run = currentRun.current;
-      let event;
-      if (run.type === 1) {
-        const maxFrame = run.frames.reduce((prev, curr) => curr.value > prev.value ? curr : prev);
-        event = { frame: maxFrame.frame, type: 'peak', value: maxFrame.value };
-      } else if (run.type === -1) {
-        const minFrame = run.frames.reduce((prev, curr) => curr.value < prev.value ? curr : prev);
-        event = { frame: minFrame.frame, type: 'trough', value: minFrame.value };
-      }
+    const previousSample = lastSample.current;
+    if (previousSample.value === null) {
+      lastSample.current = { value: maxX, frame: frameCount.current };
+      return {
+        signal: 0,
+        swipe: null,
+        isCalibrating: false,
+        bufferFull: true,
+        swipeWindow: null,
+        buffer: [...signalBuffer.current],
+        drift: null,
+        prevValue: null,
+        currentValue: null
+      };
+    }
 
+    const comparison = maxX > previousSample.value ? 1 : maxX < previousSample.value ? -1 : 0;
+    const run = currentSequence.current;
+
+    const completeSequence = (event) => {
       if (lastEvent.current) {
-        const drift = Math.abs(event.value - lastEvent.current.value);
-        if (drift >= minDrift && frameCount.current - lastSwipeFrame.current >= cooldownFrames) {
+        const calculatedDrift = Math.abs(event.value - lastEvent.current.value);
+        if (calculatedDrift >= minDrift && frameCount.current - lastSwipeFrame.current >= cooldownFrames) {
           if (lastEvent.current.type === 'peak' && event.type === 'trough') {
             swipe = 'RIGHT';
-            lastSwipeFrame.current = frameCount.current;
           } else if (lastEvent.current.type === 'trough' && event.type === 'peak') {
             swipe = 'LEFT';
+          }
+          if (swipe) {
             lastSwipeFrame.current = frameCount.current;
+            swipeWindow = { start: lastEvent.current.frame, end: event.frame };
+            drift = calculatedDrift;
+            prevValue = lastEvent.current.value;
+            currentValue = event.value;
           }
         }
       }
-
       lastEvent.current = event;
-      currentRun.current = { type: 0, frames: [] };
+    };
+
+    if (run.type === 0) {
+      if (comparison === 1) {
+        currentSequence.current = {
+          type: 1,
+          startValue: previousSample.value,
+          startFrame: previousSample.frame,
+          lastValue: maxX,
+          lastFrame: frameCount.current
+        };
+      } else if (comparison === -1) {
+        currentSequence.current = {
+          type: -1,
+          startValue: previousSample.value,
+          startFrame: previousSample.frame,
+          lastValue: maxX,
+          lastFrame: frameCount.current
+        };
+      }
+    } else if (run.type === 1) {
+      if (comparison >= 0) {
+        currentSequence.current.lastValue = maxX;
+        currentSequence.current.lastFrame = frameCount.current;
+      } else {
+        const peakEvent = { type: 'peak', value: run.lastValue, frame: run.lastFrame };
+        completeSequence(peakEvent);
+        currentSequence.current = {
+          type: -1,
+          startValue: peakEvent.value,
+          startFrame: peakEvent.frame,
+          lastValue: maxX,
+          lastFrame: frameCount.current
+        };
+      }
+    } else if (run.type === -1) {
+      if (comparison <= 0) {
+        currentSequence.current.lastValue = maxX;
+        currentSequence.current.lastFrame = frameCount.current;
+      } else {
+        const troughEvent = { type: 'trough', value: run.lastValue, frame: run.lastFrame };
+        completeSequence(troughEvent);
+        currentSequence.current = {
+          type: 1,
+          startValue: troughEvent.value,
+          startFrame: troughEvent.frame,
+          lastValue: maxX,
+          lastFrame: frameCount.current
+        };
+      }
     }
 
-    if (signal !== 0 && currentRun.current.type === 0) {
-      currentRun.current = { type: signal, frames: [{ frame: frameCount.current, value: maxX }] };
-    }
+    lastSample.current = { value: maxX, frame: frameCount.current };
 
-    return { signal, zScore: z, avgFilter: avgFilter.current, stdFilter: stdFilter.current, swipe, isCalibrating: false, bufferFull: true, isBelowThreshold };
-  }, [lag, threshold, influence, minDrift, cooldownFrames]);
+    return {
+      signal: currentSequence.current.type,
+      swipe,
+      isCalibrating: false,
+      bufferFull: true,
+      swipeWindow,
+      buffer: [...signalBuffer.current],
+      drift,
+      prevValue,
+      currentValue
+    };
+  }, [lag, minDrift, cooldownFrames]);
 
   return { processFrame, reset };
 }
