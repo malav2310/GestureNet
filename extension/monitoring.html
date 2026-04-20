@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GestureNet – Monitoring</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0e27;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; color: #a78bfa; }
+    .video-wrap {
+      position: relative;
+      width: 400px;
+      height: 300px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    video, canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    canvas { pointer-events: none; }
+    #status {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+    #swipe-indicator {
+      margin-top: 16px;
+      font-size: 2rem;
+      min-height: 2.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>✋ GestureNet</h1>
+  <div class="video-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+  </div>
+  <div id="status">Initializing…</div>
+  <div id="swipe-indicator"></div>
+  <script src="monitoring.js" type="module"></script>
+</body>
+</html>

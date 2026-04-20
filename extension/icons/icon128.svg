@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="20" fill="#6C63FF"/>
+  <!-- fingers -->
+  <rect x="55" y="22" width="12" height="38" rx="6" fill="white"/>
+  <rect x="70" y="28" width="11" height="32" rx="5.5" fill="white"/>
+  <rect x="83" y="33" width="11" height="27" rx="5.5" fill="white"/>
+  <rect x="42" y="33" width="11" height="27" rx="5.5" fill="white"/>
+  <!-- palm -->
+  <rect x="34" y="50" width="60" height="30" rx="12" fill="white"/>
+  <!-- thumb -->
+  <rect x="24" y="55" width="14" height="10" rx="5" fill="white"/>
+  <!-- swipe arrow left -->
+  <path d="M22 95 L36 83 L36 90 L72 90 L72 100 L36 100 L36 107 Z"
+        fill="white" opacity="0.9"/>
+  <!-- swipe arrow right -->
+  <path d="M106 95 L92 83 L92 90 L56 90 L56 100 L92 100 L92 107 Z"
+        fill="white" opacity="0.5"/>
+</svg>
